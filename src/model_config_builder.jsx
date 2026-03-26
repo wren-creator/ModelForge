@@ -662,7 +662,9 @@ export default function App() {
         <div className="header">
           <div className="header-top">
             <div className="title-block">
-              <div className="eyebrow">// Universal Model Config Builder</div>
+             <div className="eyebrow">
+               // Universal Model Config Builder <span className="byline">By: Britley Hoff</span>
+             </div>
               <h1>MODEL<span>FORGE</span></h1>
               <div className="subtitle">Generate backend configs for any LLM serving runtime</div>
             </div>
