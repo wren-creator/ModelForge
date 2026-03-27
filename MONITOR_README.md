@@ -22,19 +22,18 @@ Open **http://localhost:5173** — the dashboard runs immediately on mock data.
 
 ## Switching to Real Data
 
-The dashboard polls a single endpoint every 5 seconds. To connect it to your backend, open `App.jsx` and find the `update` function inside the `useEffect` block. Replace the mock call:
+The dashboard polls a single endpoint every 5 seconds. To connect it to the backend, open `App.jsx` and find the `update` function inside the `useEffect` block. Replace the mock call:
 
 ```js
-// Before — mock data
+// Before: mock data
 const s = mockSnapshot(prevRef.current);
 ```
 
 ```js
-// After — real backend
+// After: real backend
 const s = await fetch('/api/snapshot').then(r => r.json());
 ```
 
-Your `/api/snapshot` endpoint must return a JSON object that matches the shape below.
 
 ---
 
@@ -100,9 +99,9 @@ Your `/api/snapshot` endpoint must return a JSON object that matches the shape b
 
 ## How to Collect Each Metric
 
-### Inference — `inference.js`
+### Inference: `inference.js`
 
-Use the HDR histogram already in your `inference.js`. Wrap every model call with `recordInference()` and call `snapshotInference(5)` in your `/api/snapshot` handler to flush the 5-second window.
+Wrap every model call with `recordInference()` and call `snapshotInference(5)` in `/api/snapshot` handler to flush the 5-second window.
 
 ```js
 import { recordInference, snapshotInference } from './inference.js'
@@ -118,9 +117,9 @@ inference: snapshotInference(5)
 
 ---
 
-### Resources — `resource-collector.js`
+### Resources: `resource-collector.js`
 
-Your `resource-collector.js` stubs need `parseCpu` and `parseMem` implemented. Here is a working version:
+Needed updating, `parseCpu` and `parseMem` implemented. Here is a working version now:
 
 ```js
 import fs from 'fs'
@@ -142,17 +141,17 @@ export function memUsageMb() {
 }
 ```
 
-> **Note:** `/proc/stat` and `/proc/meminfo` are Linux-only. On z/OS, use the equivalent USS file system paths or query SMF records via your existing tooling.
+> **Note:** `/proc/stat` and `/proc/meminfo` are Linux-only. On z/OS, use the equivalent USS file system paths or query SMF records via existing tooling.
 
 ---
 
-### Cost — MIPS & zIIP
+### Cost: MIPS & zIIP
 
-MIPS and zIIP data come from SMF (System Management Facility) records — specifically **SMF Type 70** for CPU activity. Feed these into your snapshot via your existing `cost.js` config or a live SMF reader:
+MIPS and zIIP data come from SMF (System Management Facility) records, specifically **SMF Type 70** for CPU activity. Feed these into the snapshot via existing `cost.js` config or a live SMF reader:
 
 ```js
 export function getCostSnapshot() {
-  // Pull from your SMF Type 70 pipeline or RMF DDS feed
+  // Pull from SMF Type 70 pipeline or RMF DDS feed
   return {
     mips: smf.currentMips(),
     ziip_percent: smf.ziipOffloadPercent(),
@@ -161,13 +160,13 @@ export function getCostSnapshot() {
 }
 ```
 
-If you are using **RMF Monitor III**, its DDS REST API can be polled directly — it returns MIPS and zIIP as JSON fields under the `CPUACT` report.
+If you are using **RMF Monitor III**, its DDS REST API can be polled directly it returns MIPS and zIIP as JSON fields under the `CPUACT` report.
 
 ---
 
 ### Stability
 
-Stability metrics come directly out of `snapshotInference()` — `error_rate` and `timeout_rate` are already tracked by your `inference.js` error counter. Uptime can be derived from the process start time:
+Stability metrics come directly out of `snapshotInference()`, `error_rate` and `timeout_rate` are already tracked by `inference.js` error counter. Uptime can be derived from the process start time:
 
 ```js
 const START = Date.now()
@@ -209,9 +208,9 @@ export function getOperability(intervalSec) {
 
 ---
 
-### Security — `IAM.js`
+### Security: `IAM.js`
 
-Your `IAM.js` is static config. To surface live token age, track when the token was last issued and compute the delta:
+To surface live token age, track when the token was last issued and compute the delta:
 
 ```js
 let tokenIssuedAt = Date.now()
@@ -230,9 +229,8 @@ export function getSecuritySnapshot() {
 
 ---
 
-### z/OS Integration — `zos-probe.js`
+### z/OS Integration: `zos-probe.js`
 
-Your `zos-probe.js` is already correct. Call it on a rolling basis and maintain a success counter:
 
 ```js
 import { probeZos } from './zos-probe.js'
