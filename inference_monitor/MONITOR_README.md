@@ -1,3 +1,6 @@
+![Open Source](https://badgen.net/badge/open/source/)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 # LLM Inference Monitor
 
 > A single-pane-of-glass observability dashboard for LLM inference workloads running on z/OS. Covers all 8 metric categories: performance, throughput, resource use, cost, stability, operability, security, and z/OS integration.
