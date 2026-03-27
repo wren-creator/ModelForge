@@ -266,7 +266,7 @@ export default function Dashboard() {
         }}>
           <div>
             <div style={{ fontSize: "0.6rem", fontFamily: "var(--mono)", letterSpacing: "0.18em", color: "var(--accent)", marginBottom: "0.25rem" }}>
-              // LLM OBSERVABILITY PLATFORM
+              // LLM OBSERVABILITY PLATFORM by: Britley Hoff
             </div>
             <div style={{ fontFamily: "var(--sans)", fontWeight: 800, fontSize: "1.5rem", letterSpacing: "-0.02em", color: "#e8f4ff" }}>
               INFERENCE <span style={{ color: "var(--accent)" }}>MONITOR</span>
