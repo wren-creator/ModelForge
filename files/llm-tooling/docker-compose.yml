@@ -1,0 +1,31 @@
+services:
+
+  # ── ModelForge — LLM Config Builder ─────────────────────────────────────
+  modelforge:
+    build:
+      context: ./modelforge
+      dockerfile: Dockerfile
+    container_name: modelforge
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── LLM Inference Monitor — Observability Dashboard ──────────────────────
+  inference-monitor:
+    build:
+      context: ./inference_monitor
+      dockerfile: Dockerfile
+    container_name: inference-monitor
+    ports:
+      - "3001:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
