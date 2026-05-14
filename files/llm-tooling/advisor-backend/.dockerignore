@@ -1,0 +1,5 @@
+node_modules
+advisor.db
+advisor.db-shm
+advisor.db-wal
+*.log

@@ -1,7 +1,8 @@
 services:
 
-  # ── ModelForge — LLM Config Builder ─────────────────────────────────────
+  # ── ModelForge — LLM Config Builder ─────────────────────────────────────────
   modelforge:
+    platform: linux/arm64
     build:
       context: ./modelforge
       dockerfile: Dockerfile
@@ -15,8 +16,9 @@ services:
       timeout: 5s
       retries: 3
 
-  # ── LLM Inference Monitor — Observability Dashboard ──────────────────────
+  # ── LLM Inference Monitor — Observability Dashboard ──────────────────────────
   inference-monitor:
+    platform: linux/arm64
     build:
       context: ./inference_monitor
       dockerfile: Dockerfile
@@ -29,3 +31,53 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+
+  # ── Infrastructure Advisor — Frontend ────────────────────────────────────────
+  infra-advisor:
+    platform: linux/arm64
+    build:
+      context: ./infra-advisor
+      dockerfile: Dockerfile
+    container_name: infra-advisor
+    ports:
+      - "3002:80"
+    restart: unless-stopped
+    depends_on:
+      - advisor-backend
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── Advisor Backend — Central Aggregator ─────────────────────────────────────
+  advisor-backend:
+    platform: linux/arm64
+    build:
+      context: ./advisor-backend
+      dockerfile: Dockerfile
+    container_name: advisor-backend
+    ports:
+      - "9001:9001"
+    restart: unless-stopped
+    environment:
+      - INFERENCE_MONITOR_URL=http://inference-backend:9000/api/snapshot
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9001/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── Inference Backend — Snapshot API ─────────────────────────────────────────
+  inference-backend:
+    platform: linux/arm64
+    image: node:20-alpine
+    container_name: inference-backend
+    working_dir: /app
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./inference-backend:/app
+    command: >
+      sh -c "[ -f package.json ] && npm install && node server.js || echo 'Inference backend not wired yet — advisor will use mock data'"
+    restart: unless-stopped

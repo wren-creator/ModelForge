@@ -311,7 +311,16 @@ export default function App() {
               <div className="field">
                 <label>Model</label>
                 <select value={cfg.model} onChange={e => set("model", e.target.value)}>
-                  {MODELS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                  {Array.from(new Set(MODELS.filter(m => m.family !== "custom").map(m => m.family))).map(family => (
+                    <optgroup key={family} label={family.charAt(0).toUpperCase() + family.slice(1)}>
+                      {MODELS.filter(m => m.family === family).map(m => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                  {MODELS.filter(m => m.family === "custom").map(m => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
                 </select>
               </div>
 
