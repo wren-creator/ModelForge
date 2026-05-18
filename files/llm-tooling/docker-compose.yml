@@ -73,6 +73,9 @@ services:
       - "9000:9000"
     volumes:
       - ./inference-backend:/app
+    environment:
+      - BACKEND=ollama                                    # or: vllm
+      - BACKEND_URL=http://host.docker.internal:11434     # your on-prem host
     command: >
       sh -c "[ -f package.json ] && npm install && node server.js || echo 'Inference backend not wired yet — advisor will use mock data'"
     restart: unless-stopped
