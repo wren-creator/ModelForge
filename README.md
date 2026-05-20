@@ -4,6 +4,7 @@
 ![Node.js](https://img.shields.io/badge/Node.js-v20+-339933?logo=node.js)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)
 
+
 # llm-tooling
 
 > A self-contained observability and infrastructure planning platform for local and cloud LLM deployments.
@@ -21,7 +22,7 @@ Five services that wire together automatically:
 | **Inference Monitor** | `3001` | Live observability dashboard — latency, throughput, resource usage |
 | **Infra Advisor** | `3002` | Hardware recommendation engine with weighted scoring |
 | **Advisor Backend** | `9001` | Central REST API — aggregates configs, snapshots, and scores profiles |
-| **Inference Backend** | `9000` | Your real inference snapshot endpoint (or mock while you wire it up) |
+| **Inference Backend** | `9000` | Ollama / vLLM adapter — polls your on-prem instance and feeds live metrics upstream |
 
 ```
 ┌────────────────┐    POST /api/modelforge/config    ┌──────────────────────┐
@@ -235,6 +236,82 @@ All `/api/*` requests are proxied to `advisor-backend:9001` via nginx in Docker,
 
 ---
 
+### Inference Backend — `./inference-backend`
+
+A lightweight Node.js adapter that polls your on-prem Ollama or vLLM instance every 5 seconds and exposes `GET /api/snapshot` in the shape the Advisor Backend expects.
+
+#### Environment variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `BACKEND` | `ollama` | Which backend to poll — `ollama` or `vllm` |
+| `BACKEND_URL` | `http://localhost:11434` (Ollama) / `http://localhost:8000` (vLLM) | URL of your running inference instance |
+| `PORT` | `9000` | Listening port |
+
+#### How Ollama is polled
+
+- `GET /api/ps` — active model name, VRAM usage, context length
+- `POST /api/generate` — minimal single-token probe for real latency and `tokens_per_sec` (via Ollama's `eval_count` / `eval_duration` fields)
+
+#### How vLLM is polled
+
+- `GET /v1/models` — active model name
+- `GET /metrics` — Prometheus text format: GPU cache usage, queue depth, generation throughput
+- `POST /v1/completions` — minimal single-token probe for real latency
+
+#### Fallback behaviour
+
+The stack stays healthy whether or not your on-prem instance is reachable:
+
+**Level 1 — `inference-backend` (port 9000):** if the probe to Ollama/vLLM fails, the error is caught silently and the poll retries every 5 seconds. `/api/snapshot` returns `503` until the first successful poll.
+
+**Level 2 — `advisor-backend` (port 9001):** if it receives a `503` or network error from `inference-backend`, it falls back to jittered mock data automatically and keeps retrying.
+
+Verify which state you're in at any time:
+
+```bash
+curl http://localhost:9001/api/health
+```
+
+```json
+{
+  "status": "ok",
+  "inferenceMonitorConnected": true,
+  "dbProfiles": 18,
+  "uptime": 142.3
+}
+```
+
+`inferenceMonitorConnected: false` means mock data is active. It flips to `true` automatically once your instance comes up — no restart needed.
+
+#### Wiring it up
+
+Add the `environment` block to the `inference-backend` service in `docker-compose.yml`:
+
+```yaml
+  inference-backend:
+    image: node:20-alpine
+    container_name: inference-backend
+    working_dir: /app
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./inference-backend:/app
+    environment:
+      - BACKEND=ollama                                    # or: vllm
+      - BACKEND_URL=http://host.docker.internal:11434     # your on-prem host
+    command: sh -c "npm install && node server.js"
+    restart: unless-stopped
+```
+
+Then bring it up:
+
+```bash
+docker compose up inference-backend advisor-backend
+```
+
+---
+
 ## Local development (without Docker)
 
 ### Advisor Backend
@@ -246,6 +323,14 @@ node seed.js          # one-time database seed
 node server.js        # starts on :9001
 ```
 
+### Inference Backend
+
+```bash
+cd inference-backend
+npm install
+BACKEND=ollama BACKEND_URL=http://localhost:11434 node server.js   # starts on :9000
+```
+
 ### Any frontend (ModelForge / Inference Monitor / Infra Advisor)
 
 ```bash
@@ -255,82 +340,6 @@ npm run dev
 ```
 
 Vite dev servers proxy `/api` to `:9001` automatically via `vite.config.js`.
-
----
-
-## Wiring in a real Inference Backend
-
-The `inference-backend` service slot in `docker-compose.yml` is intentionally left as a thin placeholder. Point it at any HTTP server that returns the snapshot JSON shape described above.
-
-### Option 1 — Minimal Node.js adapter (recommended)
-
-Create `./inference-backend/server.js`:
-
-```js
-import express from "express";
-import fetch from "node-fetch";
-
-const app = express();
-const OLLAMA = process.env.OLLAMA_URL || "http://host.docker.internal:11434";
-
-app.get("/api/snapshot", async (req, res) => {
-  try {
-    const [ps, metrics] = await Promise.all([
-      fetch(`${OLLAMA}/api/ps`).then(r => r.json()),
-      // add more sources here — vLLM /metrics, llama.cpp /metrics, etc.
-    ]);
-
-    res.json({
-      timestamp: Date.now(),
-      inference: {
-        avg_ms: metrics.avg_latency_ms ?? 0,
-        p95_ms: metrics.p95_latency_ms ?? 0,
-        p99_ms: metrics.p99_latency_ms ?? 0,
-        throughput_rps: metrics.requests_per_second ?? 0,
-        errors_perc: metrics.error_rate ?? 0,
-        tokens_per_sec: metrics.tokens_per_second ?? 0,
-      },
-      resources: {
-        cpu_percent: metrics.cpu_percent ?? 0,
-        gpu_percent: metrics.gpu_percent ?? 0,
-        mem_mb: metrics.mem_mb ?? 0,
-        mem_limit_mb: metrics.mem_limit_mb ?? 8192,
-      },
-      stability: {
-        error_rate: metrics.error_rate ?? 0,
-        timeout_rate: metrics.timeout_rate ?? 0,
-        uptime_sec: metrics.uptime_sec ?? 0,
-      },
-      health: {
-        status: "healthy",
-        checks: { inference: true, memory: true },
-      },
-    });
-  } catch (err) {
-    res.status(503).json({ error: err.message });
-  }
-});
-
-app.listen(9000, () => console.log("Inference backend on :9000"));
-```
-
-Add a `package.json` alongside it, then `docker compose up` will auto-install and run it.
-
-### Option 2 — Point directly at an existing metrics endpoint
-
-If your inference server already exposes a compatible JSON endpoint, set the env var in `docker-compose.yml`:
-
-```yaml
-advisor-backend:
-  environment:
-    - INFERENCE_MONITOR_URL=http://your-metrics-host:9000/api/snapshot
-```
-
-The Advisor Backend polls this URL every 5 seconds. If it's unreachable it falls back to jittered mock data automatically — the Infra Advisor shows a `MOCK` badge in the health panel so you know.
-
-### Option 3 — vLLM native metrics
-
-vLLM exposes a Prometheus `/metrics` endpoint. Write a small scraper that reads `vllm:e2e_request_latency_seconds_*`, `vllm:request_success_total`, etc. and re-emits the snapshot shape above on `/api/snapshot`.
 
 ---
 
@@ -543,8 +552,9 @@ llm-tooling/
 │   ├── package.json
 │   └── Dockerfile
 │
-└── inference-backend/          ← Your inference snapshot adapter (wire in here)
-    └── server.js               ← Create this — see "Wiring in a real backend"
+└── inference-backend/          ← Ollama / vLLM → /api/snapshot adapter
+    ├── server.js               ← Polls your on-prem instance, exposes GET /api/snapshot
+    └── package.json
 ```
 
 ---
@@ -579,7 +589,7 @@ Each axis is 0–100. The composite score is a weighted sum using your `costWeig
 
 ## Contributing
 
-PRs welcome. Open an issue first for anything large. The inference-backend slot is intentionally left open — adapters for Ollama, vLLM, llama.cpp, and LM Studio native metric endpoints would be great additions.
+PRs welcome. Open an issue first for anything large.
 
 ---
 

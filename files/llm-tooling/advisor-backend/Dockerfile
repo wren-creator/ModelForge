@@ -1,32 +1,25 @@
-# ── Stage 1: Build ──────────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+# ── Stage 1: Build ─────────────────────────────────────────
+FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
 
-# Build tools needed for better-sqlite3 native compilation
-RUN apk add --no-cache python3 make g++
+RUN apt-get update && apt-get install -y \
+    python3 make g++ \
+ && rm -rf /var/lib/apt/lists/*
 
 COPY package.json ./
 RUN npm install
 
 COPY . .
-
-# Seed the database at build time
 RUN node seed.js
 
-# ── Stage 2: Runtime ─────────────────────────────────────────────────────────
-FROM node:20-alpine
+
+# ── Stage 2: Runtime ───────────────────────────────────────
+FROM node:20-bookworm-slim
 
 WORKDIR /app
 
-# Runtime libs for better-sqlite3
-RUN apk add --no-cache libstdc++
-
-# Copy installed node_modules and built app from builder
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/advisor.db   ./advisor.db
-COPY . .
+COPY --from=builder /app ./
 
 EXPOSE 9001
-
 CMD ["node", "server.js"]
