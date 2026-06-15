@@ -9,12 +9,18 @@ import urllib.error
 import webbrowser
 from pathlib import Path
 
-SERVICES = [
-    {"name": "ModelForge",          "url": "http://localhost:3000", "probe": "http://localhost:3000"},
-    {"name": "Inference Monitor",   "url": "http://localhost:3001", "probe": "http://localhost:3001"},
-    {"name": "Infra Advisor",       "url": "http://localhost:3002", "probe": "http://localhost:3002"},
+UI_SERVICES = [
+    {"name": "ModelForge",        "url": "http://localhost:3000", "probe": "http://localhost:3000"},
+    {"name": "Inference Monitor", "url": "http://localhost:3001", "probe": "http://localhost:3001"},
+    {"name": "Infra Advisor",     "url": "http://localhost:3002", "probe": "http://localhost:3002"},
+]
+
+# Backend-only — wait for readiness but don't open a browser tab
+BACKEND_SERVICES = [
     {"name": "Advisor Backend API", "url": "http://localhost:9001", "probe": "http://localhost:9001/api/health"},
 ]
+
+SERVICES = UI_SERVICES + BACKEND_SERVICES
 
 POLL_INTERVAL = 2   # seconds between readiness checks
 TIMEOUT       = 120 # seconds before giving up on a service
@@ -62,19 +68,20 @@ def main() -> None:
     run_compose(compose_args)
 
     print()
-    opened = []
+    ready = []
     for svc in SERVICES:
         if wait_for(svc):
-            opened.append(svc)
+            ready.append(svc)
 
     print()
-    for svc in opened:
-        print(f"  Opening  {svc['name']:22s}  {svc['url']}")
-        webbrowser.open(svc["url"])
-        time.sleep(0.3)  # slight stagger so tabs open in order
+    for svc in UI_SERVICES:
+        if svc in ready:
+            print(f"  Opening  {svc['name']:22s}  {svc['url']}")
+            webbrowser.open(svc["url"])
+            time.sleep(0.3)  # slight stagger so tabs open in order
 
     print()
-    skipped = [s["name"] for s in SERVICES if s not in opened]
+    skipped = [s["name"] for s in SERVICES if s not in ready]
     if skipped:
         print(f"  Could not reach: {', '.join(skipped)}")
         print("  Check `docker compose logs` for details.")
@@ -84,7 +91,7 @@ def main() -> None:
     print("  ║           LLM Tooling — Running Services         ║")
     print("  ╠══════════════════════════════════════════════════╣")
     for svc in SERVICES:
-        status = "✓" if svc in opened else "✗"
+        status = "✓" if svc in ready else "✗"
         print(f"  ║  {status}  {svc['name']:22s}  {svc['url']:<24s}║")
     print("  ╚══════════════════════════════════════════════════╝")
     print()
