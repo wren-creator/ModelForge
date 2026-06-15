@@ -74,7 +74,16 @@ cd ModelForge/files/llm-tooling
 docker compose up --build
 ```
 
-Or use the included convenience script to run detached and print the URL table:
+Or use the Python launcher to start detached, wait for each service, and open browser tabs automatically:
+
+```bash
+python3 start.py           # start (images already built)
+python3 start.py --build   # rebuild images first
+```
+
+`start.py` requires only Python 3 stdlib — no extra packages. It polls each service's health endpoint and opens a browser tab as soon as it's ready, then prints the status table.
+
+For a plain detached start without browser tabs:
 
 ```bash
 bash start.sh
