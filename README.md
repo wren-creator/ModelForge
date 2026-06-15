@@ -3,12 +3,21 @@
 ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 ![Node.js](https://img.shields.io/badge/Node.js-v20+-339933?logo=node.js)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)
+![Vite](https://img.shields.io/badge/Vite-6.4+-646CFF?logo=vite)
 
 
 # llm-tooling
 
 > A self-contained observability and infrastructure planning platform for local and cloud LLM deployments.
 > Build configs, watch live metrics, and get scored hardware recommendations — all from a single `docker compose up`.
+
+---
+
+## What's New
+
+- **Vite 6.4+** — all three React frontends (ModelForge, Inference Monitor, Infra Advisor) now require Vite ≥ 6.4.2
+- **Dependency security patches** — `qs` 6.15.2, `node-cron` 4.2.1, and `uuid` updated across advisor-backend
+- **`start.sh`** — convenience launcher added; runs `docker compose up -d` and prints the service URL table
 
 ---
 
@@ -52,16 +61,23 @@ Five services that wire together automatically:
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) or Docker Engine + Compose v2
 - Node.js v20+ (only needed for local dev outside Docker)
+- Vite 6.4+ (installed automatically via `npm install` for local dev)
 
 ---
 
 ## Quick Start
 
 ```bash
-git clone <your-repo-url> llm-tooling
-cd llm-tooling
+git clone https://github.com/wren-creator/ModelForge.git
+cd ModelForge/files/llm-tooling
 
 docker compose up --build
+```
+
+Or use the included convenience script to run detached and print the URL table:
+
+```bash
+bash start.sh
 ```
 
 All five services will start. Open your browser:
@@ -436,7 +452,7 @@ async function runAdvisorAgent(userQuery) {
 
   while (true) {
     const response = await client.messages.create({
-      model: "claude-opus-4-5",
+      model: "claude-opus-4-8",
       max_tokens: 1024,
       tools,
       messages,
