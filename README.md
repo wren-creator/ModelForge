@@ -15,9 +15,11 @@
 
 ## What's New
 
+- **Healthcheck fixes** — all four containers now report `(healthy)` correctly; nginx services use `127.0.0.1` to avoid an IPv6 resolution bug, advisor-backend uses a `node` one-liner instead of `wget` (not present in `bookworm-slim`)
+- **`start.py`** — Python launcher that waits for each service and opens browser tabs automatically (see [Quick Start](#quick-start))
 - **Vite 6.4+** — all three React frontends (ModelForge, Inference Monitor, Infra Advisor) now require Vite ≥ 6.4.2
 - **Dependency security patches** — `qs` 6.15.2, `node-cron` 4.2.1, and `uuid` updated across advisor-backend
-- **`start.sh`** — convenience launcher added; runs `docker compose up -d` and prints the service URL table
+- **`start.sh`** — convenience launcher; runs `docker compose up -d` and prints the service URL table
 
 ---
 
