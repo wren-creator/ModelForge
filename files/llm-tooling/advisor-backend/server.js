@@ -185,6 +185,24 @@ function generateInsights(profile, scores, snapshot, weights) {
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 
+// GET / — API index
+app.get("/", (req, res) => {
+  res.json({
+    name: "Advisor Backend",
+    version: "1.0.0",
+    endpoints: [
+      "GET  /api/health",
+      "GET  /api/inference/snapshot",
+      "GET  /api/hardware/profiles",
+      "GET  /api/hardware/categories",
+      "GET  /api/modelforge/config/latest",
+      "POST /api/modelforge/config",
+      "POST /api/recommend",
+      "GET  /api/sessions",
+    ],
+  });
+});
+
 // GET /api/health
 app.get("/api/health", (req, res) => {
   res.json({
