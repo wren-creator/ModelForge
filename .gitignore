@@ -1,7 +1,4 @@
-../../.DS_Store
+// .DS_Store and other files to be ignored by git
+.gitignore
 .DS_Store
-*/.DS_Store
-
-.DS_Store
-.DS_Store
-.DS_Store
+.aider*
