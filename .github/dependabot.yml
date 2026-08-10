@@ -1,0 +1,38 @@
+version: 2
+updates:
+  - package-ecosystem: "docker"
+    directory: "/files/llm-tooling/advisor-backend"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "docker"
+    directory: "/files/llm-tooling/inference_monitor"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "docker"
+    directory: "/files/llm-tooling/infra-advisor"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "docker"
+    directory: "/files/llm-tooling/modelforge"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/files/llm-tooling/advisor-backend"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/files/llm-tooling/inference-backend"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/files/llm-tooling/inference_monitor"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/files/llm-tooling/infra-advisor"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/files/llm-tooling/modelforge"
+    schedule:
+      interval: "weekly"
