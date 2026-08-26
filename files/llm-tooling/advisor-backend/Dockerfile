@@ -1,5 +1,5 @@
 # ── Stage 1: Build ─────────────────────────────────────────
-FROM node:20-bookworm-slim AS builder
+FROM node:25-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ RUN node seed.js
 
 
 # ── Stage 2: Runtime ───────────────────────────────────────
-FROM node:20-bookworm-slim
+FROM node:25-bookworm-slim
 
 WORKDIR /app
 
